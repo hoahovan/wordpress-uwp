@@ -261,3 +261,135 @@ function slb_save_subscription() {
 	slb_return_json( $result );
 
 }
+
+// 5.2
+// Hint: Create a new subscriber or updatea and existing one
+function slb_save_subscriber( $subscriber_data ) {
+
+	// Setup default subscriber id
+	// 0 mean the subscriber was not saved
+	$subscriber_id = 0;
+
+
+	try {
+
+		$subscriber_id = slb_get_subscriber_id( $subscriber_data['email'] );
+
+		// If the subscriber does not already exists...
+		if( !$subscriber_id ) {
+
+			// Add new subscriber to database
+			$subscriber_id = wp_insert_post(
+				array(
+						'post_type' => 'slb_subscriber',
+						'post_title' => $subscriber_data['fname'] . " " . $subscriber_data['lname'],
+						'post_status' => 'publish',
+					),
+					true
+				);
+		}
+
+		// Add/update custom meta data
+		update_field( slb_get_acf_key['slb_fname'], $subscriber_data['fname'], $subscriber_id );
+		update_field( slb_get_acf_key['slb_lname'], $subscriber_data['lname'], $subscriber_id );
+		update_field( slb_get_acf_key['slb_email'], $subscriber_data['email'], $subscriber_id);
+
+	} catch ( Exception $e ) {
+		// A PHP error occurred
+
+	}
+
+	// Return subscriber_id
+	return $subscriber_id;
+
+}
+
+
+/* !6. HELPERS */
+
+// 6.1
+// Hint: returns true or false
+function slb_subscriber_has_subscription( $subscriber_id, $list_id ) {
+
+	// Set default return value
+	$has_subscription = false;
+
+	// Get subscriber
+	$subscriber = get_post( $subscriber_id );
+
+	// Get subscriptions
+	$subscriptions = slb_get_subscriptions( $subscriber_id );
+
+	// Check subscriptions for $list_id
+	if ( in_array($list_id, $subscriptions) ) {
+
+		// Found the $list_id in $subscriptions
+		// this subscriber is already subscribed to this list
+		$has_subscription = true;
+
+	} else {
+
+		// Did not find $list_id in 
+
+	}
+
+}
+
+// 6.2
+// Hint: retrieves a subscriber_id from an email address
+function slb_get_subscriber_id( $email ) {
+
+	$subscriber_id = 0;
+
+	try {
+
+		// Check if subscriber already exists
+		$subscriber_query = new WP_Query(
+			array(
+					'post_type' => 'slb_subscriber',
+					'posts_per_page' => 1,
+					'meta_key' => 'slb_email',
+					'meta_query' => array(
+						array(
+							'key' => 'slb_email',
+							'value' => $email, // or whatever it is you're using here
+							'compare' => '='
+							),
+						),
+				)
+			);
+
+		// If the subscriber exists...
+		if( $subscriber_query->have_posts() ) {
+
+			// Get the subscriber_id
+			$subscriber_query->the_post();
+			$subscriber_id = get_the_ID();
+
+		}
+
+	} catch( Exception $e ) {
+		// A PHP error occurred
+	}
+
+	// Reset the Wordpress post object
+	wp_reset_query();
+
+	return (int)$subscriber_id;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
